@@ -3,7 +3,7 @@ from fastapi.requests import Request
 from typing import Annotated
 
 
-from helpers.keycloak_helpers_1 import check_for_resource_permission_3
+from helpers.keycloak_helpers_1 import check_for_resource_permission
 
 router = APIRouter(
     prefix="/manage-network",
@@ -14,7 +14,7 @@ router = APIRouter(
 @router.get("/network")
 def network_list(
     request: Request,
-    check_permission: Annotated[dict, Depends(check_for_resource_permission_3)],
+    check_permission: Annotated[dict, Depends(check_for_resource_permission)],
 ):
     """
     Network List API
@@ -24,7 +24,7 @@ def network_list(
 
 @router.get("/network/{network_id}")
 def network_detail(
-    check_permission: Annotated[dict, Depends(check_for_resource_permission_3)],
+    check_permission: Annotated[dict, Depends(check_for_resource_permission)],
     request: Request,
 ):
     """

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from fastapi.requests import Request
 from typing import Annotated
 
-from helpers.keycloak_helpers_1 import check_for_resource_permission_1
+from helpers.keycloak_helpers_1 import check_for_resource_permission
 
 router = APIRouter(
     prefix="/compute",
@@ -13,7 +13,7 @@ router = APIRouter(
 @router.get("/server")
 def server_list(
     request: Request,
-    check_permission: Annotated[dict, Depends(check_for_resource_permission_1)],
+    check_permission: Annotated[dict, Depends(check_for_resource_permission)],
 ):
     """
     Server List API
@@ -23,7 +23,7 @@ def server_list(
 
 @router.get("/server/{server_id}")
 def server_detail(
-    check_permission: Annotated[dict, Depends(check_for_resource_permission_1)],
+    check_permission: Annotated[dict, Depends(check_for_resource_permission)],
     request: Request,
 ):
     """
@@ -34,7 +34,7 @@ def server_detail(
 
 @router.post("/server")
 def server_create(
-    check_permission: Annotated[dict, Depends(check_for_resource_permission_1)],
+    check_permission: Annotated[dict, Depends(check_for_resource_permission)],
     request: Request,
 ):
     """
