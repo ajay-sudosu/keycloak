@@ -100,10 +100,12 @@ def check_project_role_have_access_to_policy(
                                 return True
 
     # return false
-    return False
+    raise KeycloakAuthenticationError(
+        "User role is not permitted to access this endpoint!"
+    )
 
 
-def check_for_user_access_to_project_and_resource_1(
+def check_for_user_access_to_project_and_resource(
     resource_name: str,
     resource_scope: str,
     username: str,
@@ -146,7 +148,7 @@ def check_for_user_access_to_project_and_resource_1(
             project_role_id = project_role_data[0]["id"]
 
             # check the same for resource access
-            access_response = check_project_role_have_access_to_policy(
+            return check_project_role_have_access_to_policy(
                 resource_name=resource_name,
                 resource_scope=resource_scope,
                 role_uuid=project_role_id,
@@ -154,15 +156,67 @@ def check_for_user_access_to_project_and_resource_1(
                 domain_name=domain_name,
             )
 
-            # raise exp for access denial
-            if not access_response:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="User is not permitted to access this project!",
-                )
+    raise KeycloakAuthenticationError("User doesn't have access to this project!")
 
 
-def check_for_resource_permission_1(
+def get_username_from_token(
+    bearer_token: str,
+    domain_name: str,
+    service_name: str,
+    client_secret_key: str,
+):
+    # keycloak open id obj
+    keycloak_openid = KeycloakOpenID(
+        server_url=env.SERVER_URL,
+        realm_name=domain_name,
+        client_id=service_name,
+        client_secret_key=client_secret_key,
+    )
+    try:
+        userinfo = keycloak_openid.userinfo(
+            token=bearer_token,
+        )
+
+        return userinfo["preferred_username"]
+    except KeycloakAuthenticationError:
+        raise KeycloakAuthenticationError("Token Expired or Invalid Token!")
+
+
+def check_for_project_level(
+    resource_name: str,
+    client_uuid: str,
+    domain_name: str,
+):
+    """
+    Checks for PROJECT/DOMAIN in the resource attribute
+    """
+    # keycloak admin obj
+    keycloak_admin = KeycloakAdmin(
+        server_url=env.SERVER_URL,
+        username=env.ADMIN_USER_NAME,
+        password=env.ADMIN_PASSWORD,
+        realm_name=domain_name,
+        user_realm_name=env.MASTER_REALM_NAME,
+    )
+
+    # get all resources
+    all_resources_data = keycloak_admin.get_client_authz_resources(
+        client_id=client_uuid,
+    )
+
+    for resource_data in all_resources_data:
+        if resource_data["name"] == resource_name:
+            if resource_data["attributes"]["level"] == [
+                env.PROJECT_RESOURCE_ATTRIBUTE_VALUE
+            ]:
+                return True
+            else:
+                return False
+
+    return False
+
+
+def check_for_resource_permission(
     request: Request,
 ):
     try:
@@ -178,10 +232,10 @@ def check_for_resource_permission_1(
             raise RequestValidationError("Token Missing!")
 
         # fetch the domain_name
-        domain_name = request.headers.get("domain_name", None)
+        domain_name = request.query_params.get("domain_name", None)
 
         # service name
-        service_name = request.headers.get("service_name", None)
+        service_name = request.query_params.get("service_name", None)
 
         # keycloak admin obj
         keycloak_admin = KeycloakAdmin(
@@ -193,7 +247,7 @@ def check_for_resource_permission_1(
         )
 
         # fetch the project_id
-        project_id = request.headers.get("project_id", None)
+        project_id = request.query_params.get("project_id", None)
 
         # check and replace uuid's with *'s
         endpoint = replace_uuid_with_asterisk(
@@ -210,8 +264,22 @@ def check_for_resource_permission_1(
             client_id=client_uuid,
         )
 
+        # get username
+        username = get_username_from_token(
+            bearer_token=bearer_token,
+            domain_name=domain_name,
+            service_name=service_name,
+            client_secret_key=client_secret_key,
+        )
+
+        project_level_access = check_for_project_level(
+            resource_name=endpoint,
+            client_uuid=client_uuid,
+            domain_name=domain_name,
+        )
+
         # if policy is project-based
-        if project_id:
+        if not project_level_access:
 
             # keycloak client conn.
             keycloak_openid = KeycloakOpenID(
@@ -235,177 +303,35 @@ def check_for_resource_permission_1(
             if not auth_data.is_authorized:
                 raise KeycloakAuthenticationError("User is not permitted!")
 
+        elif project_id is None:
+            raise RequestValidationError("Please provide project_id!")
         else:
-            # call check for project resource
-            pass
+            # check with permission with custom logic
+            check_for_user_access_to_project_and_resource(
+                resource_name=endpoint,
+                resource_scope=request.method,
+                client_uuid=client_uuid,
+                project_id=project_id,
+                domain_name=domain_name,
+                username=username,
+            )
 
     except KeycloakInvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid Token!",
         )
-    except Exception as e:
-        # raise e
+    except KeycloakAuthenticationError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
         )
-
-
-def check_for_resource_permission_2(
-    request: Request,
-):
-    try:
-        # remove bearer
-        if "Authorization" in request.headers:
-            bearer_token = request.headers.get("Authorization").replace(
-                "Bearer ", ""
-            )  # noqa: E501
-            endpoint = request.url.path
-            print(endpoint)
-        else:
-            raise RequestValidationError("Token Missing!")
-
-        # check and replace uuid's with *'s
-        endpoint = replace_uuid_with_asterisk(
-            endpoint=endpoint,
-        )
-
-        # keycloak client conn.
-        keycloak_openid = KeycloakOpenID(
-            server_url=env.SERVER_URL,
-            realm_name=env.REALM_NAME,
-            client_id=env.CLIENT_ID_SERVICE_2,
-            client_secret_key=env.CLIENT_SECRET_KEY_SERVICE_2,
-        )
-
-        keycloak_uma_resource = uma_permissions.Resource(endpoint)
-        keycloak_uma_scope = uma_permissions.Scope(request.method)
-        keycloak_uma_permission = keycloak_uma_resource(keycloak_uma_scope)
-
-        auth_data = keycloak_openid.has_uma_access(
-            token=bearer_token,
-            permissions=[keycloak_uma_permission],
-        )
-
-        if not auth_data.is_logged_in:
-            raise KeycloakInvalidTokenError("Token is Invalid!")
-        if not auth_data.is_authorized:
-            raise KeycloakAuthenticationError("User is not permitted!")
-
-    except KeycloakInvalidTokenError:
+    except RequestValidationError as e:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Token!",
-        )
-    except Exception as e:
-        # raise e
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
-
-
-def check_for_resource_permission_3(
-    request: Request,
-):
-    try:
-        # remove bearer
-        if "Authorization" in request.headers:
-            bearer_token = request.headers.get("Authorization").replace(
-                "Bearer ", ""
-            )  # noqa: E501
-            endpoint = request.url.path
-            print(endpoint)
-        else:
-            raise RequestValidationError("Token Missing!")
-
-        # check and replace uuid's with *'s
-        endpoint = replace_uuid_with_asterisk(
-            endpoint=endpoint,
-        )
-
-        # keycloak client conn.
-        keycloak_openid = KeycloakOpenID(
-            server_url=env.SERVER_URL,
-            realm_name=env.REALM_NAME,
-            client_id=env.CLIENT_ID_SERVICE_3,
-            client_secret_key=env.CLIENT_SECRET_KEY_SERVICE_3,
-        )
-
-        keycloak_uma_resource = uma_permissions.Resource(endpoint)
-        keycloak_uma_scope = uma_permissions.Scope(request.method)
-        keycloak_uma_permission = keycloak_uma_resource(keycloak_uma_scope)
-
-        auth_data = keycloak_openid.has_uma_access(
-            token=bearer_token, permissions=[keycloak_uma_permission]
-        )
-
-        if not auth_data.is_logged_in:
-            raise KeycloakInvalidTokenError("Token is Invalid!")
-        if not auth_data.is_authorized:
-            raise KeycloakAuthenticationError("User is not permitted!")
-
-    except KeycloakInvalidTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Token!",
-        )
     except Exception as e:
-        # raise e
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
-
-
-def check_for_resource_permission_4(
-    request: Request,
-):
-    try:
-        # remove bearer
-        if "Authorization" in request.headers:
-            bearer_token = request.headers.get("Authorization").replace(
-                "Bearer ", ""
-            )  # noqa: E501
-            endpoint = request.url.path
-            print(endpoint)
-        else:
-            raise RequestValidationError("Token Missing!")
-
-        # check and replace uuid's with *'s
-        endpoint = replace_uuid_with_asterisk(
-            endpoint=endpoint,
-        )
-
-        # keycloak client conn.
-        keycloak_openid = KeycloakOpenID(
-            server_url=env.SERVER_URL,
-            realm_name=env.REALM_NAME,
-            client_id=env.CLIENT_ID_SERVICE_4,
-            client_secret_key=env.CLIENT_SECRET_KEY_SERVICE_4,
-        )
-
-        keycloak_uma_resource = uma_permissions.Resource(endpoint)
-        keycloak_uma_scope = uma_permissions.Scope(request.method)
-        keycloak_uma_permission = keycloak_uma_resource(keycloak_uma_scope)
-
-        auth_data = keycloak_openid.has_uma_access(
-            token=bearer_token, permissions=[keycloak_uma_permission]
-        )
-
-        if not auth_data.is_logged_in:
-            raise KeycloakInvalidTokenError("Token is Invalid!")
-        if not auth_data.is_authorized:
-            raise KeycloakAuthenticationError("User is not permitted!")
-
-    except KeycloakInvalidTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Token!",
-        )
-    except Exception as e:
-        # raise e
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
@@ -415,14 +341,34 @@ def check_for_resource_permission_4(
 def get_access_token(
     username: str,
     password: str,
+    domain_name: str,
 ):
     try:
+        # keycloak admin obj
+        keycloak_admin = KeycloakAdmin(
+            server_url=env.SERVER_URL,
+            username=env.ADMIN_USER_NAME,
+            password=env.ADMIN_PASSWORD,
+            user_realm_name=env.MASTER_REALM_NAME,
+            realm_name=domain_name,
+        )
+
+        # get client id
+        client_uuid = keycloak_admin.get_client_id(
+            client_id=env.USER_LOGIN_CLIENT_ID,
+        )
+
+        # get client secret key
+        client_secret_key_data = keycloak_admin.get_client_secrets(
+            client_id=client_uuid,
+        )
+
         # Configuration
         keycloak_openid = KeycloakOpenID(
             server_url=env.SERVER_URL,
-            realm_name="temporary-realm",
-            client_id=env.CLIENT_ID_SERVICE_1,
-            client_secret_key=env.CLIENT_SECRET_KEY_SERVICE_1,
+            realm_name=domain_name,
+            client_id=env.USER_LOGIN_CLIENT_ID,
+            client_secret_key=client_secret_key_data["value"],
         )
 
         # Obtain token
@@ -455,14 +401,34 @@ def get_access_token(
 
 def refresh_token(
     request: Request,
+    domain_name: str,
 ):
     try:
-        # keycloak client conn.
+        # keycloak admin obj
+        keycloak_admin = KeycloakAdmin(
+            server_url=env.SERVER_URL,
+            username=env.ADMIN_USER_NAME,
+            password=env.ADMIN_PASSWORD,
+            user_realm_name=env.MASTER_REALM_NAME,
+            realm_name=domain_name,
+        )
+
+        # get client id
+        client_uuid = keycloak_admin.get_client_id(
+            client_id=env.USER_LOGIN_CLIENT_ID,
+        )
+
+        # get client secret key
+        client_secret_key = keycloak_admin.get_client_secrets(
+            client_id=client_uuid,
+        )
+
+        # Configuration
         keycloak_openid = KeycloakOpenID(
             server_url=env.SERVER_URL,
-            realm_name=env.REALM_NAME,
-            client_id=env.CLIENT_ID_SERVICE_1,
-            client_secret_key=env.CLIENT_SECRET_KEY_SERVICE_1,
+            realm_name=domain_name,
+            client_id=env.USER_LOGIN_CLIENT_ID,
+            client_secret_key=client_secret_key["value"],
         )
 
         # return refresh token
@@ -491,14 +457,34 @@ def refresh_token(
 
 def logout_user(
     request: Request,
+    domain_name: str,
 ):
     try:
+        # keycloak admin obj
+        keycloak_admin = KeycloakAdmin(
+            server_url=env.SERVER_URL,
+            username=env.ADMIN_USER_NAME,
+            password=env.ADMIN_PASSWORD,
+            user_realm_name=env.MASTER_REALM_NAME,
+            realm_name=domain_name,
+        )
+
+        # get client id
+        client_uuid = keycloak_admin.get_client_id(
+            client_id=env.USER_LOGIN_CLIENT_ID,
+        )
+
+        # get client secret key
+        client_secret_key = keycloak_admin.get_client_secrets(
+            client_id=client_uuid,
+        )
+
         # keycloak client conn.
         keycloak_openid = KeycloakOpenID(
             server_url=env.SERVER_URL,
             realm_name=env.REALM_NAME,
-            client_id=env.CLIENT_ID_SERVICE_1,
-            client_secret_key=env.CLIENT_SECRET_KEY_SERVICE_1,
+            client_id=env.USER_LOGIN_CLIENT_ID,
+            client_secret_key=client_secret_key['value'],
         )
 
         # logout user
@@ -524,14 +510,34 @@ def logout_user(
 
 def get_user_info(
     request: Request,
+    domain_name: str,
 ):
     try:
+        # keycloak admin obj
+        keycloak_admin = KeycloakAdmin(
+            server_url=env.SERVER_URL,
+            username=env.ADMIN_USER_NAME,
+            password=env.ADMIN_PASSWORD,
+            user_realm_name=env.MASTER_REALM_NAME,
+            realm_name=domain_name,
+        )
+
+        # get client id
+        client_uuid = keycloak_admin.get_client_id(
+            client_id=env.USER_LOGIN_CLIENT_ID,
+        )
+
+        # get client secret key
+        client_secret_key = keycloak_admin.get_client_secrets(
+            client_id=client_uuid,
+        )
+
         # keycloak client conn.
         keycloak_openid = KeycloakOpenID(
             server_url=env.SERVER_URL,
             realm_name=env.REALM_NAME,
-            client_id=env.CLIENT_ID_SERVICE_1,
-            client_secret_key=env.CLIENT_SECRET_KEY_SERVICE_1,
+            client_id=env.USER_LOGIN_CLIENT_ID,
+            client_secret_key=client_secret_key['value'],
         )
 
         # get user info

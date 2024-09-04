@@ -5,6 +5,7 @@ from enum import Enum
 class User(BaseModel):
     username: str
     password: str
+    domain_name: str
 
 
 class Scope(Enum):

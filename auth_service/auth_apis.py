@@ -26,6 +26,7 @@ def user_login(
     return get_access_token(
         username=request.username,
         password=request.password,
+        domain_name=request.domain_name,
     )
 
 
@@ -38,6 +39,7 @@ def refresh_token_api(
     """
     return refresh_token(
         request=request,
+        domain_name=request.query_params.get("domain_name", None),
     )
 
 
