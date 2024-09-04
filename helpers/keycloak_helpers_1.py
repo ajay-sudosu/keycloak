@@ -420,7 +420,7 @@ def get_access_token(
         # Configuration
         keycloak_openid = KeycloakOpenID(
             server_url=env.SERVER_URL,
-            realm_name="temporary-realm",
+            realm_name="skylus",
             client_id=env.CLIENT_ID_SERVICE_1,
             client_secret_key=env.CLIENT_SECRET_KEY_SERVICE_1,
         )

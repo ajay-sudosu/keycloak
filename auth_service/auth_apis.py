@@ -7,6 +7,7 @@ from helpers.keycloak_helpers_1 import (
     logout_user,
     get_user_info,
 )
+from helpers.keycloal_helper_3 import create_user
 
 from schemas import User
 
@@ -63,3 +64,16 @@ def get_user_info_api(
     return get_user_info(
         request=request,
     )
+
+
+@router.post("/user-create")
+def create_user_api(
+    request: Request,
+):
+    """
+    User create API
+    """
+    return create_user(
+        request=request,
+    )
+
