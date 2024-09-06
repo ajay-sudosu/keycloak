@@ -14,6 +14,7 @@ from keycloak import (
 from fastapi import HTTPException, status, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import RedirectResponse
 
 from constants import env
 
@@ -484,7 +485,7 @@ def logout_user(
             server_url=env.SERVER_URL,
             realm_name=env.REALM_NAME,
             client_id=env.USER_LOGIN_CLIENT_ID,
-            client_secret_key=client_secret_key['value'],
+            client_secret_key=client_secret_key["value"],
         )
 
         # logout user
@@ -537,7 +538,7 @@ def get_user_info(
             server_url=env.SERVER_URL,
             realm_name=env.REALM_NAME,
             client_id=env.USER_LOGIN_CLIENT_ID,
-            client_secret_key=client_secret_key['value'],
+            client_secret_key=client_secret_key["value"],
         )
 
         # get user info
@@ -551,6 +552,90 @@ def get_user_info(
         )
     except Exception as e:
         # return httpexc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+
+def keycloak_signin_page_redirect(
+    request: Request,
+    domain_name: str,
+):
+    # keycloak admin obj
+    keycloak_admin = KeycloakAdmin(
+        server_url=env.SERVER_URL,
+        username=env.ADMIN_USER_NAME,
+        password=env.ADMIN_PASSWORD,
+        user_realm_name=env.MASTER_REALM_NAME,
+        realm_name=domain_name,
+    )
+
+    # get client id
+    client_uuid = keycloak_admin.get_client_id(
+        client_id=env.USER_LOGIN_CLIENT_ID,
+    )
+
+    # get client secret key
+    client_secret_key = keycloak_admin.get_client_secrets(
+        client_id=client_uuid,
+    )
+
+    # Initialize Keycloak client
+    keycloak_openid = KeycloakOpenID(
+        server_url=env.SERVER_URL,
+        client_id=env.USER_LOGIN_CLIENT_ID,
+        realm_name=domain_name,
+        client_secret_key=client_secret_key,
+    )
+
+    # Generate the authorization URL for Microsoft login
+    auth_uri = keycloak_openid.auth_url(
+        redirect_uri=env.TOKEN_GENERATE_API_URL,
+        scope="openid email profile",
+    )
+
+    # redirect to user-login
+    return RedirectResponse(url=auth_uri)
+
+
+def generate_access_token(
+    request: Request,
+):
+    try:
+        # Handle the callback from Keycloak
+        code = request.query_params.get("code")
+
+        # Initialize Keycloak client
+        keycloak_openid = KeycloakOpenID(
+            server_url="http://localhost:8080",
+            client_id="microsoft-keycloak-client",
+            realm_name="skylus",
+            client_secret_key="yFbsrEevmAhmtMWjYchqPumE0HZkG2sQ",
+        )
+
+        token = keycloak_openid.token(
+            code=code,
+            grant_type=["authorization_code"],
+            redirect_uri="http://localhost:8000/auth/callback",
+        )
+
+        # Extract the access token
+        access_token = token["access_token"]
+
+        return JSONResponse(
+            status_code=status.HTTP_202_ACCEPTED,
+            content={
+                "access_token": access_token,
+                "refresh_token": token["refresh_token"],
+            },
+        )
+    except KeycloakAuthenticationError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials!",
+        )
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
