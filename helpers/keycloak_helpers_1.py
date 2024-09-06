@@ -586,7 +586,7 @@ def keycloak_signin_page_redirect(
         server_url=env.SERVER_URL,
         client_id=env.USER_LOGIN_CLIENT_ID,
         realm_name=domain_name,
-        client_secret_key=client_secret_key,
+        client_secret_key=client_secret_key["value"],
     )
 
     # Generate the authorization URL for Microsoft login
@@ -603,15 +603,34 @@ def generate_access_token(
     request: Request,
 ):
     try:
+        # keycloak admin obj
+        keycloak_admin = KeycloakAdmin(
+            server_url=env.SERVER_URL,
+            username=env.ADMIN_USER_NAME,
+            password=env.ADMIN_PASSWORD,
+            user_realm_name=env.MASTER_REALM_NAME,
+            realm_name=domain_name,
+        )
+
+        # get client id
+        client_uuid = keycloak_admin.get_client_id(
+            client_id=env.USER_LOGIN_CLIENT_ID,
+        )
+
+        # get client secret key
+        client_secret_key = keycloak_admin.get_client_secrets(
+            client_id=client_uuid,
+        )
+
         # Handle the callback from Keycloak
         code = request.query_params.get("code")
 
         # Initialize Keycloak client
         keycloak_openid = KeycloakOpenID(
-            server_url="http://localhost:8080",
-            client_id="microsoft-keycloak-client",
-            realm_name="skylus",
-            client_secret_key="yFbsrEevmAhmtMWjYchqPumE0HZkG2sQ",
+            server_url=env.SERVER_URL,
+            client_id=env.USER_LOGIN_CLIENT_ID,
+            realm_name=domain_name,
+            client_secret_key=client_secret_key["value"],
         )
 
         token = keycloak_openid.token(
