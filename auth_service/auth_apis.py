@@ -6,6 +6,8 @@ from helpers.keycloak_helpers_1 import (
     refresh_token,
     logout_user,
     get_user_info,
+    generate_access_token,
+    keycloak_signin_page_redirect,
 )
 
 from schemas import User
@@ -63,5 +65,24 @@ def get_user_info_api(
     User info API
     """
     return get_user_info(
+        request=request,
+    )
+
+
+@router.get("/login/new")
+def login_microsoft(
+    request: Request,
+):
+    return keycloak_signin_page_redirect(
+        request=request,
+        domain_name=request.query_params.get("domain_name", None),
+    )
+
+
+@router.get("/call/back")
+def call_back_api(
+    request: Request,
+):
+    return generate_access_token(
         request=request,
     )
