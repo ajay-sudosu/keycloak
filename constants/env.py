@@ -1,5 +1,5 @@
 MASTER_REALM_NAME = "master"
-REALM_NAME = "skylus"
+REALM_NAME = "temp-realm"
 SERVER_URL = "http://localhost:8080"
 ADMIN_USER_NAME = "admin"
 ADMIN_PASSWORD = "admin"

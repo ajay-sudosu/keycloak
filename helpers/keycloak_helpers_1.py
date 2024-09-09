@@ -609,7 +609,7 @@ def generate_access_token(
             username=env.ADMIN_USER_NAME,
             password=env.ADMIN_PASSWORD,
             user_realm_name=env.MASTER_REALM_NAME,
-            realm_name=domain_name,
+            realm_name="jasu",
         )
 
         # get client id
@@ -629,14 +629,14 @@ def generate_access_token(
         keycloak_openid = KeycloakOpenID(
             server_url=env.SERVER_URL,
             client_id=env.USER_LOGIN_CLIENT_ID,
-            realm_name=domain_name,
+            realm_name="jasu",
             client_secret_key=client_secret_key["value"],
         )
 
         token = keycloak_openid.token(
             code=code,
             grant_type=["authorization_code"],
-            redirect_uri="http://localhost:8000/auth/callback",
+            redirect_uri=env.TOKEN_GENERATE_API_URL,
         )
 
         # Extract the access token
@@ -655,7 +655,8 @@ def generate_access_token(
             detail="Invalid credentials!",
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
+        raise e
+        # raise HTTPException(
+        #     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        #     detail=str(e),
+        # )
