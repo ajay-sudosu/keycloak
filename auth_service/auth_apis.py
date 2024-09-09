@@ -75,7 +75,7 @@ def login_microsoft(
 ):
     return keycloak_signin_page_redirect(
         request=request,
-        domain_name="jasu",
+        domain_name="skylus",
     )
 
 
