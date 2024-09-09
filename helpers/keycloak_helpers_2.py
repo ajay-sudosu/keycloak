@@ -1,6 +1,7 @@
 from keycloak import KeycloakAdmin
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
+import json
 
 from constants import env
 
@@ -10,6 +11,7 @@ def remove_ids(data):
     if isinstance(data, dict):
         data.pop("id", None)
         data.pop("_id", None)
+        data.pop("internalId", None)
         for key, value in data.items():
             remove_ids(value)
     elif isinstance(data, list):
@@ -87,8 +89,47 @@ def format_realm_json(
                 db_ind
             ]["config"]["bindCredential"] = [ldap_user_password]
 
+    # TODO: replace microsoft client creds
+    # update the realm settings with microsoft client creds
+    for i, identity_provider in enumerate(realm_json["identityProviders"]):
+        if identity_provider["alias"] == "microsoft":
+            realm_json["identityProviders"][i]["config"][
+                "clientSecret"
+            ] = env.MICROSOFT_CLIENT_SECRET
+
+    # remove authentication flow
+    realm_json.pop("authenticationFlows", None)
+
     # return formatted json
     return realm_json
+
+
+def regenerate_all_registered_service_client_creds(
+    domain_name: str,
+):
+    """
+    Regenerates all the registered service client creds
+    """
+    # keycloak admin obj
+    keycloak_admin = KeycloakAdmin(
+        server_url=env.SERVER_URL,
+        username=env.ADMIN_USER_NAME,
+        password=env.ADMIN_PASSWORD,
+        user_realm_name=env.MASTER_REALM_NAME,
+        realm_name=domain_name,
+    )
+
+    # loop through service-names list
+    for service in env.REGISTERED_SERVICES:
+        # client uuid
+        client_uuid = keycloak_admin.get_client_id(
+            client_id=service,
+        )
+
+        # generate new client secret cred
+        keycloak_admin.generate_client_secrets(
+            client_id=client_uuid,
+        )
 
 
 def create_a_new_realm(
@@ -103,17 +144,20 @@ def create_a_new_realm(
         # keycloak admin
         keycloak_admin = KeycloakAdmin(
             server_url=env.SERVER_URL,
-            username="admin",
-            password="admin",
-            user_realm_name="master",
-            realm_name="skylus",
+            username=env.ADMIN_USER_NAME,
+            password=env.ADMIN_PASSWORD,
+            user_realm_name=env.MASTER_REALM_NAME,
+            # realm_name=env.TEMPLATE_REALM_WITH_LDAP,
         )
 
         # calls export function
-        template_realm_json = keycloak_admin.export_realm(
-            export_clients=True,
-            export_groups_and_role=True,
-        )
+        # template_realm_json = keycloak_admin.export_realm(
+        #     export_clients=True,
+        #     export_groups_and_role=True,
+        # )
+
+        with open("realm-export.json", "r", encoding="utf-8") as json_file:
+            template_realm_json = json.load(json_file)
 
         # calls realm json
         realm_data = format_realm_json(
@@ -126,6 +170,13 @@ def create_a_new_realm(
         # upload to domain.json to keycloak server
         keycloak_admin.import_realm(
             payload=realm_data,
+        )
+
+        # TODO: integrate api that adds uri to microsoft azure app registrations
+
+        # regenerate client tokens
+        regenerate_all_registered_service_client_creds(
+            domain_name=domain_name,
         )
 
         # return success
