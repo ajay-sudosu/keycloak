@@ -75,11 +75,11 @@ def login_microsoft(
 ):
     return keycloak_signin_page_redirect(
         request=request,
-        domain_name=request.query_params.get("domain_name", None),
+        domain_name="skylus",
     )
 
 
-@router.get("/call/back")
+@router.get("/auth/callback")
 def call_back_api(
     request: Request,
 ):
