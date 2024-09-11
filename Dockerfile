@@ -11,5 +11,5 @@ ENV KEYCLOAK_ADMIN_PASSWORD=admin
 # Expose the Keycloak port
 EXPOSE 8080
 
-# Set the default command to start Keycloak
-CMD ["start-dev"]
+# # Set the default command to start Keycloak
+# CMD ["start-dev"]
