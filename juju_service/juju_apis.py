@@ -18,7 +18,7 @@ def juju_service_list(
     """
     Juju Service List API
     """
-    return "Juju service list"
+    return "Juju service list fetch successfully."
 
 
 @router.get("/juju-service/{juju_service_id}")

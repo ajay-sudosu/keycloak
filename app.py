@@ -68,7 +68,7 @@ response = """
 <body>
 
     <header>
-        <h1>Welcome to My Website</h1>
+        <h1>Welcome to Demo Skylus</h1>
     </header>
 
     <nav>

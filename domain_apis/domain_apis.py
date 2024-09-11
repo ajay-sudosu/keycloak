@@ -17,6 +17,7 @@ def create_domain(
     request: Request,
     domain_create_input: DomainInput,
 ):
+    print(domain_create_input.domainName)
     return create_a_new_realm(
         domain_name=domain_create_input.domainName,
         ldap_user_name=domain_create_input.ldapUsername,

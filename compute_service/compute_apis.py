@@ -18,7 +18,7 @@ def server_list(
     """
     Server List API
     """
-    return "Server list"
+    return "Server list fetched successfully."
 
 
 @router.get("/server/{server_id}")
@@ -40,4 +40,4 @@ def server_create(
     """
     Create Server API
     """
-    return "Server Create"
+    return "Server Created successfully"

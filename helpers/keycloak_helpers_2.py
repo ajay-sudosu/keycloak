@@ -156,7 +156,7 @@ def create_a_new_realm(
         #     export_groups_and_role=True,
         # )
 
-        with open("realm-export.json", "r", encoding="utf-8") as json_file:
+        with open("/home/ajay-netweb/PycharmProjects/keycloak/realm-export.json", "r", encoding="utf-8") as json_file:
             template_realm_json = json.load(json_file)
 
         # calls realm json
