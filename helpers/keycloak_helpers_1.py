@@ -778,14 +778,14 @@ def generate_random_string(length=16):
     return ''.join(random.choice(letters) for _ in range(length))
 
 
-def add_ldap_configuration(payload):
+def add_ldap_configuration(payload: dict, domain_name: str):
     try:
         keycloak_admin = KeycloakAdmin(
             server_url=env.SERVER_URL,
             username=env.ADMIN_USER_NAME,
             password=env.ADMIN_PASSWORD,
             user_realm_name=env.MASTER_REALM_NAME,
-            realm_name="test_123",
+            realm_name=domain_name,
         )
         storage_id = keycloak_admin.create_component(payload=payload)
         result = keycloak_admin.sync_users(storage_id=storage_id, action="triggerFullSync")
