@@ -20,5 +20,4 @@ class Scope(Enum):
 
 class DomainInput(BaseModel):
     domainName: str
-    ldapUsername: str
-    ldapPassword: str
+    office_365_custom_logic: bool

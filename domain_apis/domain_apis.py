@@ -3,7 +3,10 @@ from fastapi.requests import Request
 from schemas import DomainInput
 
 
-from helpers.keycloak_helpers_2 import create_a_new_realm
+from helpers.keycloak_helpers_2 import (
+    create_a_new_realm_from_raw_template_realm,
+    create_a_new_realm_from_office365_custom_logic_template_realm,
+)
 
 
 router = APIRouter(
@@ -17,8 +20,11 @@ def create_domain(
     request: Request,
     domain_create_input: DomainInput,
 ):
-    return create_a_new_realm(
-        domain_name=domain_create_input.domainName,
-        ldap_user_name=domain_create_input.ldapUsername,
-        ldap_user_password=domain_create_input.ldapPassword,
-    )
+    if domain_create_input.office_365_custom_logic:
+        return create_a_new_realm_from_office365_custom_logic_template_realm(
+            domain_name=domain_create_input.domainName,
+        )
+    else:
+        return create_a_new_realm_from_raw_template_realm(
+            domain_name=domain_create_input.domainName,
+        )
