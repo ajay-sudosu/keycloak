@@ -20,7 +20,8 @@ REGISTERED_SERVICES = [
 ]
 
 # name of template realm
-TEMPLATE_REALM_WITH_LDAP = "template-realm"
+RAW_TEMPLATE_REALM = "raw-template"
+OFFICE_365_CUSTOM_FLOW_TEMPLATE_REALM = "office-365-custom-logic-template"
 
 # microsoft test-sso-creds
 MICROSOFT_CLIENT_SECRET = "7~_8Q~w~-uZK3AeYCSdaHO6fzGIIFQDhS_r2fcLt"
