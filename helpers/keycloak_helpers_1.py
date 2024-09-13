@@ -12,6 +12,10 @@ from keycloak import (
     KeycloakInvalidTokenError,
     KeycloakAuthenticationError,
 )
+from keycloak.exceptions import (
+    KeycloakOperationError,
+)
+from modules.microsoft_login import MicrosoftLogin
 from fastapi import HTTPException, status, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -175,6 +179,7 @@ def get_username_from_token(
         client_secret_key=client_secret_key,
     )
     try:
+        # get user info
         userinfo = keycloak_openid.userinfo(
             token=bearer_token,
         )
@@ -206,6 +211,7 @@ def check_for_project_level(
         client_id=client_uuid,
     )
 
+    # get all resources
     for resource_data in all_resources_data:
         if resource_data["name"] == resource_name:
             if resource_data["attributes"]["level"] == [
@@ -229,7 +235,6 @@ def check_for_resource_permission(
                 "Bearer ", ""
             )  # noqa: E501
             endpoint = request.url.path
-            print(endpoint)
         else:
             raise RequestValidationError("Token Missing!")
 
@@ -382,6 +387,7 @@ def get_access_token(
         # Extract the access token
         access_token = token["access_token"]
 
+        # return access token + refresh token
         return JSONResponse(
             status_code=status.HTTP_202_ACCEPTED,
             content={
@@ -442,6 +448,7 @@ def refresh_token(
             grant_type=["refresh_token"],
         )
 
+        # return JSON response
         return JSONResponse(
             status_code=status.HTTP_202_ACCEPTED,
             content={
@@ -496,6 +503,7 @@ def logout_user(
             )  # noqa: E501
         )
 
+        # return response
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
@@ -547,6 +555,7 @@ def get_user_info(
             token=request.headers.get("Authorization").replace("Bearer ", "")
         )
 
+        # return user data response
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content=user,
@@ -604,23 +613,22 @@ def generate_access_token(
     request: Request,
 ):
     try:
-        # keycloak admin obj
-        keycloak_admin = KeycloakAdmin(
-            server_url=env.SERVER_URL,
-            username=env.ADMIN_USER_NAME,
-            password=env.ADMIN_PASSWORD,
-            user_realm_name=env.MASTER_REALM_NAME,
-            realm_name="skylus",
+        # extract domain name
+        domain_name = request.query_params.get("iss").split("/")[-1]
+
+        # microsoft login helper class obj
+        microsoft_login = MicrosoftLogin(
+            domain_name=domain_name,
         )
 
         # get client id
-        client_uuid = keycloak_admin.get_client_id(
-            client_id=env.USER_LOGIN_CLIENT_ID,
+        client_uuid = microsoft_login.get_client_uuid(
+            client_name=env.USER_LOGIN_CLIENT_ID,
         )
 
         # get client secret key
-        client_secret_key = keycloak_admin.get_client_secrets(
-            client_id=client_uuid,
+        client_secret_key = microsoft_login.get_client_secrets(
+            client_uuid=client_uuid,
         )
 
         # Handle the callback from Keycloak
@@ -630,19 +638,55 @@ def generate_access_token(
         keycloak_openid = KeycloakOpenID(
             server_url=env.SERVER_URL,
             client_id=env.USER_LOGIN_CLIENT_ID,
-            realm_name="skylus",
+            realm_name=domain_name,
             client_secret_key=client_secret_key["value"],
         )
 
+        # genrate keycloak access token
         token = keycloak_openid.token(
             code=code,
             grant_type=["authorization_code"],
             redirect_uri=env.TOKEN_GENERATE_API_URL,
         )
 
+        # get user info for checking the domain
+        user_data = keycloak_openid.userinfo(token=token["access_token"])
+
+        if user_data[
+            "email"
+        ] is not None and microsoft_login.check_for_user_microsoft_social_login(
+            user_uuid=user_data["sub"]
+        ):
+            # check the email is same as domain
+            if microsoft_login.check_email_against_domain_name(
+                email=user_data["email"],
+                client_uuid=client_uuid,
+                role_name=env.USER_LOGIN_CLIENT_ROLE_NAME,
+            ):
+                # Extract the access token
+                access_token = token["access_token"]
+
+                # return all tokens
+                return JSONResponse(
+                    status_code=status.HTTP_202_ACCEPTED,
+                    content={
+                        "access_token": access_token,
+                        "refresh_token": token["refresh_token"],
+                    },
+                )
+            else:
+                # delete user from keycloak
+                microsoft_login.delete_user(
+                    user_uuid=user_data["sub"],
+                )
+
+                # send the invalid domain email error
+                raise KeycloakOperationError("Email doesn't belong to this domain!")
+
         # Extract the access token
         access_token = token["access_token"]
 
+        # return all tokens
         return JSONResponse(
             status_code=status.HTTP_202_ACCEPTED,
             content={
@@ -654,6 +698,11 @@ def generate_access_token(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials!",
+        )
+    except KeycloakOperationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
         )
     except Exception as e:
         raise HTTPException(

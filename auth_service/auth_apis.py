@@ -71,13 +71,14 @@ def get_user_info_api(
     )
 
 
-@router.get("/login/new")
+@router.get("/login/new/{domain_name}")
 def login_microsoft(
     request: Request,
+    domain_name: str,
 ):
     return keycloak_signin_page_redirect(
         request=request,
-        domain_name="skylus",
+        domain_name=domain_name,
     )
 
 
