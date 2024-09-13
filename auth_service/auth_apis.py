@@ -10,9 +10,10 @@ from helpers.keycloak_helpers_1 import (
     keycloak_signin_page_redirect,
     user_create,
     add_ldap_configuration,
+    add_ad_configuration
 )
 
-from schemas import User, UserLogin, LDAP
+from schemas import User, UserLogin, LDAP, AD
 
 
 router = APIRouter(
@@ -110,5 +111,18 @@ def configure_ldap(request: Request, ldap_obj: LDAP):
         )
         ldap_payload = ldap_obj.model_dump()
         return add_ldap_configuration(ldap_payload, domain_name)
+    except Exception as e:
+        return {"msg": str(e)}
+
+
+@router.post("/configure-AD")
+def configure_ad(request: Request, ad_obj: AD):
+    try:
+        domain_name = request.query_params.get(
+            "domain_name",
+            None,
+        )
+        ad_obj = ad_obj.model_dump()
+        return add_ad_configuration(payload=ad_obj, domain_name=domain_name)
     except Exception as e:
         return {"msg": str(e)}
