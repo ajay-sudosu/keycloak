@@ -797,5 +797,5 @@ def add_ldap_configuration(payload: dict, domain_name: str):
         )
 
 
-def add_ad_configuration(payload):
-    pass
+def add_ad_configuration(payload, domain_name: str):
+    return add_ldap_configuration(payload=payload, domain_name=domain_name)

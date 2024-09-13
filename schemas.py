@@ -59,3 +59,12 @@ class LDAP(BaseModel):
     providerId: str
     providerType: str = "org.keycloak.storage.UserStorageProvider"
     config: LDAPConfig
+
+
+class ADConfig(LDAPConfig):
+    vendor: List[str] = ['ad', ]
+
+
+class AD(LDAP):
+    config: ADConfig
+
