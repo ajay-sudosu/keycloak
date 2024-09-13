@@ -2,7 +2,6 @@ from rsa import PublicKey, PrivateKey, encrypt, decrypt
 from base64 import b64encode, b64decode
 
 
-
 class SecurePassword:
     def encrypt_password(self, password):
         public_key = b'-----BEGIN RSA PUBLIC KEY-----\nMEgCQQCKmaKWnYgHjkAQS8A05WxBX0hvguU82L9BVyUpdDOtiTgdRURLHT/MbQlQ\nZOMRv1OO+jwnNzs7kHMU03pLKdwFAgMBAAE=\n-----END RSA PUBLIC KEY-----\n'
@@ -18,12 +17,5 @@ class SecurePassword:
         decrypted_message = decrypt(b64decode(encrypted_password.encode()), private_key).decode()
         return decrypted_message
 
-secure = SecurePassword()
 
-a = "netweb"
-
-encrypt_pass = secure.encrypt_password(a)
-print(encrypt_pass)
-decrypt_pass = secure.decrypt_password(encrypt_pass)
-print(decrypt_pass)
-
+secure_the_password = SecurePassword()

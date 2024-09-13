@@ -8,9 +8,11 @@ from helpers.keycloak_helpers_1 import (
     get_user_info,
     generate_access_token,
     keycloak_signin_page_redirect,
+    user_create
 )
 
-from schemas import User
+from schemas import User, UserLogin
+
 
 router = APIRouter(
     prefix="/user",
@@ -20,7 +22,7 @@ router = APIRouter(
 
 @router.post("/login")
 def user_login(
-    request: User,
+    request: UserLogin,
 ):
     """
     User login API
@@ -86,3 +88,12 @@ def call_back_api(
     return generate_access_token(
         request=request,
     )
+
+
+@router.post("/auth/create")
+def user_create_(user_obj: User):
+    try:
+        user_obj = user_obj.model_dump()
+        return user_create(**user_obj)
+    except Exception as e:
+        return {"msg": str(e)}

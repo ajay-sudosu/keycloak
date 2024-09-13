@@ -1,3 +1,4 @@
+import base64
 import re
 import json
 import uuid
@@ -659,3 +660,49 @@ def generate_access_token(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
+
+
+def user_create(username: str, email: str, domain_name:str, password: str = None):
+    from db import UserLoginTable
+    import random
+    import string
+    from db import session, insert_user
+    from secure_pass import secure_the_password
+    payload = {"username": username,
+               "email": email,
+               "enabled": True}
+    try:
+        # keycloak admin obj
+        keycloak_admin = KeycloakAdmin(
+            server_url=env.SERVER_URL,
+            username=env.ADMIN_USER_NAME,
+            password=env.ADMIN_PASSWORD,
+            user_realm_name=env.MASTER_REALM_NAME,
+            realm_name="skylus",
+        )
+        try:
+            user_id = keycloak_admin.create_user(payload=payload, exist_ok=False)
+            #process to create user in skylus
+            def generate_random_string(length=16):
+                letters = string.ascii_letters  # a-z, A-Z
+                return ''.join(random.choice(letters) for _ in range(length))
+            skylus_password = generate_random_string()
+            user = insert_user(username=username, password=skylus_password)
+            if user:
+                return {"message": f"User created- {user_id}"}
+            else:
+                keycloak_admin.delete_user(user_id=user_id)
+                return {"message": f"User creation failed."}
+        except Exception as e:
+            return {"msg": str(e)}
+    except KeycloakAuthenticationError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials!",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+

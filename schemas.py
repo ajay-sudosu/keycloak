@@ -1,11 +1,16 @@
 from pydantic import BaseModel
 from enum import Enum
+from typing import Optional
 
 
-class User(BaseModel):
+class UserLogin(BaseModel):
     username: str
-    password: str
+    password: Optional[str] = None
     domain_name: str
+
+
+class User(UserLogin):
+    email: str
 
 
 class Scope(Enum):
