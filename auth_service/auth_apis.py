@@ -8,10 +8,11 @@ from helpers.keycloak_helpers_1 import (
     get_user_info,
     generate_access_token,
     keycloak_signin_page_redirect,
-    user_create
+    user_create,
+    add_ldap_configuration
 )
 
-from schemas import User, UserLogin
+from schemas import User, UserLogin, LDAP
 
 
 router = APIRouter(
@@ -96,5 +97,14 @@ def user_create_(user_obj: User):
     try:
         user_obj = user_obj.model_dump()
         return user_create(**user_obj)
+    except Exception as e:
+        return {"msg": str(e)}
+
+
+@router.post("/configure-LDAP")
+def configure_ldap(ldap_obj: LDAP):
+    try:
+        ldap_payload = ldap_obj.model_dump()
+        return add_ldap_configuration(ldap_payload)
     except Exception as e:
         return {"msg": str(e)}
