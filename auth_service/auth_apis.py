@@ -9,7 +9,7 @@ from helpers.keycloak_helpers_1 import (
     generate_access_token,
     keycloak_signin_page_redirect,
     user_create,
-    add_ldap_configuration
+    add_ldap_configuration,
 )
 
 from schemas import User, UserLogin, LDAP
@@ -102,9 +102,13 @@ def user_create_(user_obj: User):
 
 
 @router.post("/configure-LDAP")
-def configure_ldap(ldap_obj: LDAP):
+def configure_ldap(request: Request, ldap_obj: LDAP):
     try:
+        domain_name = request.query_params.get(
+            "domain_name",
+            None,
+        )
         ldap_payload = ldap_obj.model_dump()
-        return add_ldap_configuration(ldap_payload)
+        return add_ldap_configuration(ldap_payload, domain_name)
     except Exception as e:
         return {"msg": str(e)}
