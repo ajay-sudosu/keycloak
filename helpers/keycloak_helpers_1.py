@@ -743,7 +743,7 @@ def user_create(username: str, domain_name: str, password: str, email: str = Non
             username=env.ADMIN_USER_NAME,
             password=env.ADMIN_PASSWORD,
             user_realm_name=env.MASTER_REALM_NAME,
-            realm_name="skylus",
+            realm_name=domain_name,
         )
         try:
             # openstack user creation
@@ -779,18 +779,24 @@ def generate_random_string(length=16):
 
 
 def add_ldap_configuration(payload: dict, domain_name: str):
+    keycloak_admin = KeycloakAdmin(
+        server_url=env.SERVER_URL,
+        username=env.ADMIN_USER_NAME,
+        password=env.ADMIN_PASSWORD,
+        user_realm_name=env.MASTER_REALM_NAME,
+        realm_name=domain_name,
+    )
+    storage_id = None
     try:
-        keycloak_admin = KeycloakAdmin(
-            server_url=env.SERVER_URL,
-            username=env.ADMIN_USER_NAME,
-            password=env.ADMIN_PASSWORD,
-            user_realm_name=env.MASTER_REALM_NAME,
-            realm_name=domain_name,
-        )
         storage_id = keycloak_admin.create_component(payload=payload)
         result = keycloak_admin.sync_users(storage_id=storage_id, action="triggerFullSync")
+        if result["failed"] > 0:
+            keycloak_admin.delete_component(component_id=storage_id)
+            return {"msg": "Users Synced Failed."}
         return result
     except Exception as e:
+        if storage_id:
+            keycloak_admin.delete_component(component_id=storage_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
