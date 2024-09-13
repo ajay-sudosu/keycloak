@@ -3,6 +3,9 @@ import re
 import json
 import uuid
 
+import random
+import string
+
 from keycloak import (
     KeycloakOpenID,
     KeycloakAdmin,
@@ -22,6 +25,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 
 from constants import env
+from db import insert_user
 
 
 def is_valid_uuid(val):
@@ -386,14 +390,30 @@ def get_access_token(
 
         # Extract the access token
         access_token = token["access_token"]
+        user_data = keycloak_openid.userinfo(token=access_token)
 
-        # return access token + refresh token
+        # get the openstack token
+        from db import select_user
+        user = select_user(username=username)
+        if user:
+            from secure_pass import secure_the_password
+            decrypt_pass = secure_the_password.decrypt_password(user_data["o_pass"])
+            if user.password == decrypt_pass:
+                o_token = "jkjahjksh123jkjdsfllknnsdfmsfdsk+=="
+
+                # return access token + refresh token
+                return JSONResponse(
+                    status_code=status.HTTP_202_ACCEPTED,
+                    content={
+                        "access_token": access_token,
+                        "o_token": o_token,
+                        "refresh_token": token["refresh_token"],
+                    },
+                )
         return JSONResponse(
-            status_code=status.HTTP_202_ACCEPTED,
+            status_code=status.HTTP_400_BAD_REQUEST,
             content={
-                "access_token": access_token,
-                "refresh_token": token["refresh_token"],
-            },
+              "body": "Login failed."}
         )
     except KeycloakAuthenticationError:
         raise HTTPException(
@@ -711,15 +731,11 @@ def generate_access_token(
         )
 
 
-def user_create(username: str, email: str, domain_name:str, password: str = None):
-    from db import UserLoginTable
-    import random
-    import string
-    from db import session, insert_user
-    from secure_pass import secure_the_password
+def user_create(username: str, domain_name: str, password: str, email: str = None):
     payload = {"username": username,
                "email": email,
-               "enabled": True}
+               "enabled": True,}
+    from secure_pass import secure_the_password
     try:
         # keycloak admin obj
         keycloak_admin = KeycloakAdmin(
@@ -730,17 +746,18 @@ def user_create(username: str, email: str, domain_name:str, password: str = None
             realm_name="skylus",
         )
         try:
-            user_id = keycloak_admin.create_user(payload=payload, exist_ok=False)
-            #process to create user in skylus
-            def generate_random_string(length=16):
-                letters = string.ascii_letters  # a-z, A-Z
-                return ''.join(random.choice(letters) for _ in range(length))
+            # openstack user creation
             skylus_password = generate_random_string()
-            user = insert_user(username=username, password=skylus_password)
+            user = insert_user(username=username, password=skylus_password, domain_name=domain_name)
             if user:
+                #  keycloak user creation
+                encrypt_password = secure_the_password.encrypt_password(password=skylus_password)
+                # adding the encrypted openstack password
+                payload["attributes"] = {"o_pass": encrypt_password}
+                user_id = keycloak_admin.create_user(payload=payload, exist_ok=False)
+                keycloak_admin.set_user_password(user_id=user_id, password=password, temporary=False)
                 return {"message": f"User created- {user_id}"}
             else:
-                keycloak_admin.delete_user(user_id=user_id)
                 return {"message": f"User creation failed."}
         except Exception as e:
             return {"msg": str(e)}
@@ -755,3 +772,26 @@ def user_create(username: str, email: str, domain_name:str, password: str = None
             detail=str(e),
         )
 
+
+def generate_random_string(length=16):
+    letters = string.ascii_letters  # a-z, A-Z
+    return ''.join(random.choice(letters) for _ in range(length))
+
+
+def add_ldap_configuration(payload):
+    try:
+        keycloak_admin = KeycloakAdmin(
+            server_url=env.SERVER_URL,
+            username=env.ADMIN_USER_NAME,
+            password=env.ADMIN_PASSWORD,
+            user_realm_name=env.MASTER_REALM_NAME,
+            realm_name="test_123",
+        )
+        storage_id = keycloak_admin.create_component(payload=payload)
+        result = keycloak_admin.sync_users(storage_id=storage_id, action="triggerFullSync")
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
