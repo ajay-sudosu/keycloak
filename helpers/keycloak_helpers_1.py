@@ -795,3 +795,7 @@ def add_ldap_configuration(payload):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
+
+
+def add_ad_configuration(payload):
+    pass

@@ -108,3 +108,12 @@ def configure_ldap(ldap_obj: LDAP):
         return add_ldap_configuration(ldap_payload)
     except Exception as e:
         return {"msg": str(e)}
+
+
+@router.post("/configure-AD")
+def configure_ad(ad_obj: LDAP):
+    try:
+        ad_obj = ad_obj.model_dump()
+        return add_ad_configuration()
+    except Exception as e:
+        return {"msg": str(e)}
