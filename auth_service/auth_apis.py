@@ -10,10 +10,11 @@ from helpers.keycloak_helpers_1 import (
     keycloak_signin_page_redirect,
     user_create,
     add_ldap_configuration,
-    add_ad_configuration
+    add_ad_configuration,
+    microsoft_login
 )
 
-from schemas import User, UserLogin, LDAP, AD
+from schemas import User, UserLogin, LDAP, AD, Microsoft
 
 
 router = APIRouter(
@@ -126,3 +127,17 @@ def configure_ad(request: Request, ad_obj: AD):
         return add_ad_configuration(payload=ad_obj, domain_name=domain_name)
     except Exception as e:
         return {"msg": str(e)}
+
+
+@router.post("/configure-o365")
+def configure_ad(request: Request, o_obj: Microsoft):
+    try:
+        domain_name = request.query_params.get(
+            "domain_name",
+            None,
+        )
+        o_obj = o_obj.model_dump()
+        return microsoft_login(payload=o_obj, domain_name=domain_name)
+    except Exception as e:
+        return {"msg": str(e)}
+

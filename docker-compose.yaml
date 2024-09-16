@@ -31,6 +31,23 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  openldap:
+    image: bitnami/openldap:latest
+    container_name: openldap
+    environment:
+      - LDAP_ROOT=dc=example,dc=org
+      - LDAP_ADMIN_USERNAME=admin
+      - LDAP_ADMIN_PASSWORD=admin
+      - LDAP_USERS=user01,user02
+      - LDAP_PASSWORDS=password01,password02
+    ports:
+      - "1636:1636"
+      - "1389:1389"
+    volumes:
+      - openldap_data:/bitnami/openldap
+    restart: unless-stopped
+
+
 volumes:
   postgres_data:
-
+  openldap_data:

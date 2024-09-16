@@ -1,0 +1,83 @@
+# skylus.example.org
+dn: dc=skylus,dc=example,dc=org
+objectClass: top
+objectClass: domain
+dc: skylus
+
+# backend, skylus.example.org
+dn: ou=backend,dc=skylus,dc=example,dc=org
+objectClass: top
+objectClass: organizationalUnit
+ou: backend
+
+# frontend, skylus.example.org
+dn: ou=frontend,dc=skylus,dc=example,dc=org
+objectClass: top
+objectClass: organizationalUnit
+ou: frontend
+
+# team, backend, skylus.example.org
+dn: ou=team,ou=backend,dc=skylus,dc=example,dc=org
+objectClass: top
+objectClass: organizationalUnit
+ou: team
+
+# aatish, backend, skylus.example.org
+dn: cn=aatish,ou=backend,dc=skylus,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: aatish
+sn: aatish
+
+# ajay, team, backend, skylus.example.org
+dn: cn=ajay,ou=team,ou=backend,dc=skylus,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: ajay
+sn: ajay
+
+# jaswanth, team, backend, skylus.example.org
+dn: cn=jaswanth,ou=team,ou=backend,dc=skylus,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: jaswanth
+sn: jaswanth
+
+# jp, frontend, skylus.example.org
+dn: cn=jp,ou=frontend,dc=skylus,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: jp
+sn: jp
+
+# team, frontend, skylus.example.org
+dn: ou=team,ou=frontend,dc=skylus,dc=example,dc=org
+objectClass: top
+objectClass: organizationalUnit
+ou: team
+
+# frontenddev1, team, frontend, skylus.example.org
+dn: cn=frontenddev1,ou=team,ou=frontend,dc=skylus,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: frontenddev1
+sn: frontenddev1
+
+# frontenddev2, team, frontend, skylus.example.org
+dn: cn=frontenddev2,ou=team,ou=frontend,dc=skylus,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: frontenddev2
+sn: frontenddev2
