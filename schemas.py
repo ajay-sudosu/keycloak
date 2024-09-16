@@ -68,3 +68,24 @@ class ADConfig(LDAPConfig):
 class AD(LDAP):
     config: ADConfig
 
+
+class MicrosoftConfig(BaseModel):
+    tenantId: str
+    clientId: str
+    clientSecret: str
+    authorization: str = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+    tokenUrl: str = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+    userInfoUrl: str = "https://graph.microsoft.com/v1.0/me"
+    defaultScope: str = "openid profile email"
+    useJwksUrl: bool = False
+    syncMode: str = "FORCE"
+    prompt: str = "login"
+
+
+class Microsoft(BaseModel):
+    alias: str = "microsoft"
+    displayName: str = "microsoft"
+    providerId: str = "microsoft"
+    enabled:  bool = True
+    trustEmail: str
+    config: MicrosoftConfig

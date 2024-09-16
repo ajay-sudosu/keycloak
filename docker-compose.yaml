@@ -41,8 +41,8 @@ services:
       - LDAP_USERS=user01,user02
       - LDAP_PASSWORDS=password01,password02
     ports:
-      - "1389:1389"
       - "1636:1636"
+      - "1389:1389"
     volumes:
       - openldap_data:/bitnami/openldap
     restart: unless-stopped

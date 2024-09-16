@@ -805,3 +805,21 @@ def add_ldap_configuration(payload: dict, domain_name: str):
 
 def add_ad_configuration(payload, domain_name: str):
     return add_ldap_configuration(payload=payload, domain_name=domain_name)
+
+
+def microsoft_login(payload, domain_name: str):
+    try:
+        keycloak_admin = KeycloakAdmin(
+            server_url=env.SERVER_URL,
+            username=env.ADMIN_USER_NAME,
+            password=env.ADMIN_PASSWORD,
+            user_realm_name=env.MASTER_REALM_NAME,
+            realm_name=domain_name,
+        )
+        result = keycloak_admin.create_idp(payload=payload)
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )

@@ -20,10 +20,9 @@ class UserLoginTable(Base):
     __tablename__ = 'user_login'
 
     id = Column(Integer, primary_key=True)
-    username = Column(String(50), nullable=False)
+    username = Column(String(50), nullable=False, unique=True)
     password = Column(String(200))
     domain_name = Column(String(200))
-
 
 
 # Create a session factory
