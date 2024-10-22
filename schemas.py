@@ -34,24 +34,58 @@ class LDAPConfig(BaseModel):
     rdnLDAPAttribute: List[str]
     startTls: List[bool]
     usernameLDAPAttribute: List[str]
-    connectionPooling: List[bool] = [False, ]
-    enabled: List[bool] = [True, ]
-    pagination: List[bool] = [False, ]
-    fullSyncPeriod: List[str] = ["5", ]
-    changedSyncPeriod: List[str] = ["5", ]
-    cachePolicy: List[str] = ["DEFAULT", ]
-    useKerberosForPasswordAuthentication: List[bool] = [False, ]
-    importEnabled: List[bool] = [True, ]
-    readTimeout: List[str] = ["10000000", ]
+    connectionPooling: List[bool] = [
+        False,
+    ]
+    enabled: List[bool] = [
+        True,
+    ]
+    pagination: List[bool] = [
+        False,
+    ]
+    fullSyncPeriod: List[str] = [
+        "5",
+    ]
+    changedSyncPeriod: List[str] = [
+        "5",
+    ]
+    cachePolicy: List[str] = [
+        "DEFAULT",
+    ]
+    useKerberosForPasswordAuthentication: List[bool] = [
+        False,
+    ]
+    importEnabled: List[bool] = [
+        True,
+    ]
+    readTimeout: List[str] = [
+        "10000000",
+    ]
     editMode: List[str] = ["WRITABLE"]
-    vendor: List[str] = ['other', ]
-    authType: List[str] = ["simple", ]
-    krbPrincipalAttribute: List[str] = ["krb5PrincipalName", ]
-    searchScope: List[str] = ["1", ]
-    useTruststoreSpi: List[str] = ["never", ]
-    usePasswordModifyExtendedOp: List[bool] = [False, ]
-    trustEmail: List[bool] = [True, ]
-    validatePasswordPolicy: List[bool] = [False, ]
+    vendor: List[str] = [
+        "other",
+    ]
+    authType: List[str] = [
+        "simple",
+    ]
+    krbPrincipalAttribute: List[str] = [
+        "krb5PrincipalName",
+    ]
+    searchScope: List[str] = [
+        "1",
+    ]
+    useTruststoreSpi: List[str] = [
+        "never",
+    ]
+    usePasswordModifyExtendedOp: List[bool] = [
+        False,
+    ]
+    trustEmail: List[bool] = [
+        True,
+    ]
+    validatePasswordPolicy: List[bool] = [
+        False,
+    ]
 
 
 class LDAP(BaseModel):
@@ -62,7 +96,9 @@ class LDAP(BaseModel):
 
 
 class ADConfig(LDAPConfig):
-    vendor: List[str] = ['ad', ]
+    vendor: List[str] = [
+        "ad",
+    ]
 
 
 class AD(LDAP):
@@ -73,7 +109,9 @@ class MicrosoftConfig(BaseModel):
     tenantId: str
     clientId: str
     clientSecret: str
-    authorization: str = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+    authorization: str = (
+        "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+    )
     tokenUrl: str = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
     userInfoUrl: str = "https://graph.microsoft.com/v1.0/me"
     defaultScope: str = "openid profile email"
@@ -86,6 +124,6 @@ class Microsoft(BaseModel):
     alias: str = "microsoft"
     displayName: str = "microsoft"
     providerId: str = "microsoft"
-    enabled:  bool = True
+    enabled: bool = True
     trustEmail: str
     config: MicrosoftConfig

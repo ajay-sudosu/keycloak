@@ -1,11 +1,9 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, UUID
+from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from secure_pass import secure_the_password
-from schemas import UserLogin
 # Define the SQLite database URL
-DATABASE_URL = "sqlite:////home/ajay-netweb/PycharmProjects/keycloak/skylus.db"
+DATABASE_URL = "sqlite:///C:\\Users\\Jaswanth\\corpy\\keycloak\\skylus.db"
 
 # Create the SQLAlchemy engine
 engine = create_engine(DATABASE_URL, echo=True)

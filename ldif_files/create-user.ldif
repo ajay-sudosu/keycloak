@@ -1,0 +1,29 @@
+dn: cn=jp,ou=frontend,dc=skylus,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: jp
+sn: jp
+
+
+dn: ou=team,ou=frontend,dc=skylus,dc=example,dc=org
+objectClass: top
+objectClass: organizationalUnit
+ou: team
+
+dn: cn=frontenddev1,ou=team,ou=frontend,dc=skylus,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: frontenddev1
+sn: frontenddev1
+
+dn: cn=frontenddev2,ou=team,ou=frontend,dc=skylus,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: frontenddev2
+sn: frontenddev2

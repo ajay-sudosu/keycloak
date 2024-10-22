@@ -1,0 +1,4 @@
+dn: cn=jaswanth,ou=team,ou=backend,dc=skylus,dc=example,dc=org
+changetype: modify
+add: userPassword
+userPassword: testpass

@@ -140,4 +140,3 @@ def configure_ad(request: Request, o_obj: Microsoft):
         return microsoft_login(payload=o_obj, domain_name=domain_name)
     except Exception as e:
         return {"msg": str(e)}
-

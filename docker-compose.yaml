@@ -19,6 +19,7 @@ services:
       - "8080:8080"
     depends_on:
       - db
+      - openldap
 
   db:
     image: postgres:14
@@ -46,7 +47,6 @@ services:
     volumes:
       - openldap_data:/bitnami/openldap
     restart: unless-stopped
-
 
 volumes:
   postgres_data:

@@ -37,13 +37,22 @@ def format_realm_json(
         if "authorizationSettings" in realm_json["clients"][auth_data_index]:
             # remove 'Default Policy', 'Default Permission'
             for policy_index, sub_item in enumerate(
+                realm_js on["clients"][auth_data_index]["authorizationSettings"][
+                    "policies"
+                ]
+            ):
+                if sub_item["name"] == "Default Policy":
+                    realm_json["clients"][auth_data_index]["authorizationSettings"][
+                        "policies"
+                    ].pop(policy_index)
+
+            for policy_index, sub_item in enumerate(
                 realm_json["clients"][auth_data_index]["authorizationSettings"][
                     "policies"
                 ]
             ):
                 if (
-                    sub_item["name"] == "Default Policy"
-                    or sub_item["name"] == "Default Permission"
+                    sub_item["name"] == "Default Permission"
                 ):
                     realm_json["clients"][auth_data_index]["authorizationSettings"][
                         "policies"
@@ -145,6 +154,8 @@ def create_a_new_realm_from_raw_template_realm(
             user_realm_name=env.MASTER_REALM_NAME,
             realm_name=env.RAW_TEMPLATE_REALM,
         )
+        
+        keycloak_admin.get_realm_roles
 
         # calls export function
         template_realm_json = keycloak_admin.export_realm(
