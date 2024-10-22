@@ -15,7 +15,8 @@ REGISTERED_SERVICES = [
     "compute-service",
     "storage-service",
     "network-service",
-    "juju-service",
+    "billing-service",
+    "auth-service",
     "user-login",  # client for user login token generation
 ]
 

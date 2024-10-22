@@ -1,3 +1,5 @@
+import json
+
 from keycloak import KeycloakAdmin
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
@@ -42,6 +44,18 @@ def format_realm_json(
                 ]
             ):
                 if sub_item["name"] == "Default Policy":
+                    realm_json["clients"][auth_data_index]["authorizationSettings"][
+                        "policies"
+                    ].pop(policy_index)
+
+            for policy_index, sub_item in enumerate(
+                realm_json["clients"][auth_data_index]["authorizationSettings"][
+                    "policies"
+                ]
+            ):
+                if (
+                    sub_item["name"] == "Default Policy"
+                ):
                     realm_json["clients"][auth_data_index]["authorizationSettings"][
                         "policies"
                     ].pop(policy_index)
@@ -158,17 +172,24 @@ def create_a_new_realm_from_raw_template_realm(
         keycloak_admin.get_realm_roles
 
         # calls export function
-        template_realm_json = keycloak_admin.export_realm(
-            export_clients=True,
-            export_groups_and_role=True,
-        )
+        # template_realm_json = keycloak_admin.export_realm(
+        #     export_clients=True,
+        #     export_groups_and_role=True,
+        # )
+        #
+        #
+        with open("raw-template.json", "r", encoding="utf-8") as json_file:
+            # extract raw template data
+            template_realm_json = json.load(json_file)
 
-        # calls realm json
+        # # calls realm json
         realm_data = format_realm_json(
             realm_json=template_realm_json,
             domain_name=domain_name,
             office_365_custom=False,
         )
+
+        print(realm_data)
 
         # upload to domain.json to keycloak server
         keycloak_admin.import_realm(
@@ -191,6 +212,7 @@ def create_a_new_realm_from_raw_template_realm(
         )
     except Exception as e:
         raise HTTPException(
+
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
