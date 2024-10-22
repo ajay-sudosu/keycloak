@@ -200,6 +200,7 @@ def create_a_new_realm_from_raw_template_realm(
         )
     except Exception as e:
         raise HTTPException(
+
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
